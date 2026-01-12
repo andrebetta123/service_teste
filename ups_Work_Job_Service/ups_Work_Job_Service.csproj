@@ -1,0 +1,70 @@
+﻿<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{C1B29014-96AA-4723-AC5A-913E493E75F8}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <RootNamespace>ups_Work_Job_Service</RootNamespace>
+    <AssemblyName>ups_Work_Job_Service</AssemblyName>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <OutputPath>bin\Debug\</OutputPath>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <OutputPath>bin\Release\</OutputPath>
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.6.0.4\lib\net45\Newtonsoft.Json.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http.Formatting, Version=5.2.9.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.AspNet.WebApi.Client.5.2.9\lib\net45\System.Net.Http.Formatting.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.ServiceProcess" />
+    <Reference Include="System.Configuration" />
+    <Reference Include="System.Configuration.Install" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ups_Business\ups_Business.csproj">
+      <Project>{6C85BB84-E7A7-4CF1-8F92-F610F0409689}</Project>
+      <Name>ups_Business</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\ups_Common\ups_Common.csproj">
+      <Project>{f7ae018e-e204-4d86-9074-d265ce3038b2}</Project>
+      <Name>ups_Common</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\ups_Entities\ups_Entities.csproj">
+      <Project>{1F1C8909-AB3E-43E3-91C0-BD5E0E0D4556}</Project>
+      <Name>ups_Entities</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\ups_DAO\ups_DAO.csproj">
+      <Project>{DF063F2C-DC0C-4BD5-B21A-703B789CBCB0}</Project>
+      <Name>ups_DAO</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <Compile Include="UpsWindowsServiceWordJob.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="UpsWindowsServiceWordJob.Designer.cs" />
+    <Compile Include="ProjectInstaller.cs">
+      <SubType>Component</SubType>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <WCFMetadata Include="Connected Services\" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

@@ -1,0 +1,15 @@
+C:\Users\lrj6lsn\Documents\Projetos\ups_Solution\ups_Business\bin\Debug\ups_Business.dll.config
+C:\Users\lrj6lsn\Documents\Projetos\ups_Solution\ups_Business\bin\Debug\ups_Business.dll
+C:\Users\lrj6lsn\Documents\Projetos\ups_Solution\ups_Business\bin\Debug\ups_Business.pdb
+C:\Users\lrj6lsn\Documents\Projetos\ups_Solution\ups_Business\bin\Debug\ups_Common.dll
+C:\Users\lrj6lsn\Documents\Projetos\ups_Solution\ups_Business\bin\Debug\ups_DAO.dll
+C:\Users\lrj6lsn\Documents\Projetos\ups_Solution\ups_Business\bin\Debug\ups_Entities.dll
+C:\Users\lrj6lsn\Documents\Projetos\ups_Solution\ups_Business\bin\Debug\ups_DAO.pdb
+C:\Users\lrj6lsn\Documents\Projetos\ups_Solution\ups_Business\bin\Debug\ups_DAO.dll.config
+C:\Users\lrj6lsn\Documents\Projetos\ups_Solution\ups_Business\bin\Debug\ups_Common.pdb
+C:\Users\lrj6lsn\Documents\Projetos\ups_Solution\ups_Business\bin\Debug\ups_Entities.pdb
+C:\Users\lrj6lsn\Documents\Projetos\ups_Solution\ups_Business\obj\Debug\ups_Business.csproj.AssemblyReference.cache
+C:\Users\lrj6lsn\Documents\Projetos\ups_Solution\ups_Business\obj\Debug\ups_Business.csproj.CoreCompileInputs.cache
+C:\Users\lrj6lsn\Documents\Projetos\ups_Solution\ups_Business\obj\Debug\ups_Business.csproj.CopyComplete
+C:\Users\lrj6lsn\Documents\Projetos\ups_Solution\ups_Business\obj\Debug\ups_Business.dll
+C:\Users\lrj6lsn\Documents\Projetos\ups_Solution\ups_Business\obj\Debug\ups_Business.pdb

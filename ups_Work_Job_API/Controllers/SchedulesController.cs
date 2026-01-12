@@ -1,0 +1,34 @@
+
+using System;
+using System.Web.Http;
+using ups_Business;
+using ups_DAO;
+
+namespace ups_Work_Job_API.Controllers
+{
+    [RoutePrefix("api/schedules")]
+    public class SchedulesController : ApiController
+    {
+        private readonly SchedulerService _scheduler = new SchedulerService();
+        private readonly JobSchedulesDao _dao = new JobSchedulesDao();
+
+        // GET api/schedules/due
+        [HttpGet, Route("due")]
+        public IHttpActionResult GetDue()
+        {
+            return Ok(_dao.GetDue(DateTime.UtcNow));
+        }
+
+        // POST api/schedules/evaluate
+        [HttpPost, Route("evaluate")]
+        public IHttpActionResult Evaluate()
+        {
+            _scheduler.EvaluateAndUpdateNextRuns(DateTime.UtcNow);
+
+            return Ok(new
+            {
+                message = "NextRunUtc recalculado."
+            });
+        }
+    }
+}

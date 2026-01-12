@@ -1,0 +1,1 @@
+using System.Web; using System.Web.Http; using Swashbuckle.Application; namespace ups_Work_Job_API { public class WebApiApplication : HttpApplication { protected void Application_Start(){ GlobalConfiguration.Configure(WebApiConfig.Register); GlobalConfiguration.Configuration.EnableSwagger(c=>{ c.SingleApiVersion("v1","ups_Work_Job_API"); }).EnableSwaggerUi(); } } }

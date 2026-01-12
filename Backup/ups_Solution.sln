@@ -1,0 +1,51 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30000.00
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ups_Entities", "ups_Entities\ups_Entities.csproj", "{1F1C8909-AB3E-43E3-91C0-BD5E0E0D4556}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ups_Common", "ups_Common\ups_Common.csproj", "{F7AE018E-E204-4D86-9074-D265CE3038B2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ups_DAO", "ups_DAO\ups_DAO.csproj", "{DF063F2C-DC0C-4BD5-B21A-703B789CBCB0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ups_Business", "ups_Business\ups_Business.csproj", "{6C85BB84-E7A7-4CF1-8F92-F610F0409689}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ups_Work_Job_API", "ups_Work_Job_API\ups_Work_Job_API.csproj", "{CF1A9439-DFDC-4A2D-B8E0-5E848AB4D739}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ups_Work_Job_Service", "ups_Work_Job_Service\ups_Work_Job_Service.csproj", "{C1B29014-96AA-4723-AC5A-913E493E75F8}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1F1C8909-AB3E-43E3-91C0-BD5E0E0D4556}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1F1C8909-AB3E-43E3-91C0-BD5E0E0D4556}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1F1C8909-AB3E-43E3-91C0-BD5E0E0D4556}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1F1C8909-AB3E-43E3-91C0-BD5E0E0D4556}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F7AE018E-E204-4D86-9074-D265CE3038B2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F7AE018E-E204-4D86-9074-D265CE3038B2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F7AE018E-E204-4D86-9074-D265CE3038B2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F7AE018E-E204-4D86-9074-D265CE3038B2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DF063F2C-DC0C-4BD5-B21A-703B789CBCB0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DF063F2C-DC0C-4BD5-B21A-703B789CBCB0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DF063F2C-DC0C-4BD5-B21A-703B789CBCB0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DF063F2C-DC0C-4BD5-B21A-703B789CBCB0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6C85BB84-E7A7-4CF1-8F92-F610F0409689}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6C85BB84-E7A7-4CF1-8F92-F610F0409689}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6C85BB84-E7A7-4CF1-8F92-F610F0409689}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6C85BB84-E7A7-4CF1-8F92-F610F0409689}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CF1A9439-DFDC-4A2D-B8E0-5E848AB4D739}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CF1A9439-DFDC-4A2D-B8E0-5E848AB4D739}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CF1A9439-DFDC-4A2D-B8E0-5E848AB4D739}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CF1A9439-DFDC-4A2D-B8E0-5E848AB4D739}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C1B29014-96AA-4723-AC5A-913E493E75F8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C1B29014-96AA-4723-AC5A-913E493E75F8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C1B29014-96AA-4723-AC5A-913E493E75F8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C1B29014-96AA-4723-AC5A-913E493E75F8}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

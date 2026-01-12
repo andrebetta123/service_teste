@@ -1,0 +1,45 @@
+﻿<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{6C85BB84-E7A7-4CF1-8F92-F610F0409689}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <RootNamespace>ups_Business</RootNamespace>
+    <AssemblyName>ups_Business</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <OutputPath>bin\Debug\</OutputPath>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <OutputPath>bin\Release\</OutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ups_DAO\ups_DAO.csproj">
+      <Project>{DF063F2C-DC0C-4BD5-B21A-703B789CBCB0}</Project>
+      <Name>ups_DAO</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\ups_Common\ups_Common.csproj">
+      <Project>{F7AE018E-E204-4D86-9074-D265CE3038B2}</Project>
+      <Name>ups_Common</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\ups_Entities\ups_Entities.csproj">
+      <Project>{1F1C8909-AB3E-43E3-91C0-BD5E0E0D4556}</Project>
+      <Name>ups_Entities</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="JobsService.cs" />
+    <Compile Include="SchedulerService.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="app.config" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>
