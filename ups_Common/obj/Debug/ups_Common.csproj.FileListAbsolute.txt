@@ -3,4 +3,3 @@ C:\Users\lrj6lsn\Documents\Projetos\ups_Solution\ups_Common\bin\Debug\ups_Common
 C:\Users\lrj6lsn\Documents\Projetos\ups_Solution\ups_Common\obj\Debug\ups_Common.csproj.CoreCompileInputs.cache
 C:\Users\lrj6lsn\Documents\Projetos\ups_Solution\ups_Common\obj\Debug\ups_Common.dll
 C:\Users\lrj6lsn\Documents\Projetos\ups_Solution\ups_Common\obj\Debug\ups_Common.pdb
-C:\Users\lrj6lsn\Documents\Projetos\ups_Solution\ups_Common\obj\Debug\ups_Common.csproj.AssemblyReference.cache

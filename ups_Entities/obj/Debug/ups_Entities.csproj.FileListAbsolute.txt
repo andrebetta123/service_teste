@@ -1,6 +1,5 @@
 C:\Users\lrj6lsn\Documents\Projetos\ups_Solution\ups_Entities\bin\Debug\ups_Entities.dll
 C:\Users\lrj6lsn\Documents\Projetos\ups_Solution\ups_Entities\bin\Debug\ups_Entities.pdb
-C:\Users\lrj6lsn\Documents\Projetos\ups_Solution\ups_Entities\obj\Debug\ups_Entities.csproj.AssemblyReference.cache
 C:\Users\lrj6lsn\Documents\Projetos\ups_Solution\ups_Entities\obj\Debug\ups_Entities.csproj.CoreCompileInputs.cache
 C:\Users\lrj6lsn\Documents\Projetos\ups_Solution\ups_Entities\obj\Debug\ups_Entities.dll
 C:\Users\lrj6lsn\Documents\Projetos\ups_Solution\ups_Entities\obj\Debug\ups_Entities.pdb

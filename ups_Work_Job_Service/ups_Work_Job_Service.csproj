@@ -1,5 +1,6 @@
 ﻿<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
+    <LangVersion>8.0</LangVersion>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{C1B29014-96AA-4723-AC5A-913E493E75F8}</ProjectGuid>
@@ -50,6 +51,10 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Locking.cs" />
+    <Compile Include="JobExecutor.cs" />
+    <Compile Include="NextRunCalculator.cs" />
+    <Compile Include="Scheduler.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="UpsWindowsServiceWordJob.cs">
       <SubType>Component</SubType>

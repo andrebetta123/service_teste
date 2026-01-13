@@ -1,1 +1,51 @@
-using System; using System.ServiceProcess; using System.Timers; using ups_Business; using ups_DAO; namespace ups_Work_Job_Service { public partial class UpsWindowsServiceWordJob : ServiceBase { private Timer _timer; private readonly JobsService _jobs=new JobsService(); private readonly SchedulerService _scheduler=new SchedulerService(); private readonly JobSchedulesDao _sDao=new JobSchedulesDao(); public UpsWindowsServiceWordJob(){ InitializeComponent(); ServiceName="ups_Work_Job_Service"; } protected override void OnStart(string[] args){ _timer = new Timer(60000); _timer.Elapsed += (s,e)=> Tick(); _timer.AutoReset = true; _timer.Start(); } private void Tick(){ var now = DateTime.UtcNow; _scheduler.EvaluateAndUpdateNextRuns(now); foreach(var sch in _sDao.GetDue(now)){ try{ _jobs.RunJob(sch.JobId); var next=_scheduler.ComputeNextRunUtc(sch,now); _sDao.UpdateNextRunAndEval(sch.ScheduleId,next,now);} catch{} } } protected override void OnStop(){ _timer?.Stop(); _timer?.Dispose(); } } }
+
+using System;
+using System.Configuration;
+using System.Diagnostics;
+using System.ServiceProcess;
+
+namespace ups_Work_Job_Service
+{
+    public sealed class UpsWindowsServiceWorkJob : ServiceBase
+    {
+        private Scheduler _scheduler;
+
+        public UpsWindowsServiceWorkJob()
+        {
+            ServiceName = "UpsWorkJobService";
+            CanStop = true;
+            CanPauseAndContinue = false;
+            AutoLog = true; // usa EventLog padrão do serviço
+        }
+
+        protected override void OnStart(string[] args)
+        {
+            try
+            {
+                Trace.TraceInformation("UpsWorkJobService iniciando...");
+
+                int poll = int.TryParse(ConfigurationManager.AppSettings["PollIntervalSec"], out var p) ? p : 15;
+                int par = int.TryParse(ConfigurationManager.AppSettings["MaxDegreeOfParallelism"], out var m) ? m : 2;
+                string connName = ConfigurationManager.AppSettings["SqlServer"] ?? "Default";
+
+                _scheduler = new Scheduler(poll, par, connName);
+                _scheduler.Start();
+
+                Trace.TraceInformation("UpsWorkJobService iniciado.");
+            }
+            catch (Exception ex)
+            {
+                Trace.TraceError("Falha ao iniciar serviço: " + ex);
+                throw;
+            }
+        }
+
+        protected override void OnStop()
+        {
+            Trace.TraceInformation("UpsWorkJobService parando...");
+            _scheduler?.Stop();
+            Trace.TraceInformation("UpsWorkJobService parado.");
+        }
+    }
+
+}

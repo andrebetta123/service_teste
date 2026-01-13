@@ -1,25 +1,30 @@
 
 using System.ComponentModel;
-using System.Configuration.Install;  // necessário para Installer
+using System.Configuration.Install;
 using System.ServiceProcess;
 
 namespace ups_Work_Job_Service
 {
     [RunInstaller(true)]
-    public class ProjectInstaller : Installer
+    public sealed class ProjectInstaller : Installer
     {
         public ProjectInstaller()
         {
-            var processInstaller = new ServiceProcessInstaller { Account = ServiceAccount.LocalSystem };
-            var serviceInstaller = new ServiceInstaller
+            var process = new ServiceProcessInstaller
             {
-                ServiceName = "ups_Work_Job_Service",
+                Account = ServiceAccount.LocalSystem // ajuste para conta de serviço/usuário quando necessário
+            };
+
+            var service = new ServiceInstaller
+            {
+                ServiceName = "UpsWorkJobService",
                 DisplayName = "UPS Work Job Service",
-                Description = "Serviço Windows para execução de Jobs e agendamentos.",
+                Description = "Serviço de execução de Jobs parametrizados via SQL",
                 StartType = ServiceStartMode.Automatic
             };
-            Installers.Add(processInstaller);
-            Installers.Add(serviceInstaller);
+
+            Installers.Add(process);
+            Installers.Add(service);
         }
     }
 }
