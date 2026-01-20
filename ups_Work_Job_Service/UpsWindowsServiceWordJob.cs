@@ -25,8 +25,8 @@ namespace ups_Work_Job_Service
                 Trace.TraceInformation("UpsWorkJobService iniciando...");
 
                 int poll = int.TryParse(ConfigurationManager.AppSettings["PollIntervalSec"], out var p) ? p : 15;
-                int par = int.TryParse(ConfigurationManager.AppSettings["MaxDegreeOfParallelism"], out var m) ? m : 2;
-                string connName = ConfigurationManager.AppSettings["SqlServer"] ?? "Default";
+                int par = int.TryParse(ConfigurationManager.AppSettings["MaxDegreeOfParallelism"], out var m) ? m : 1;
+                string connName = ConfigurationManager.AppSettings["DbConnName"] ?? "SqlServer";
 
                 _scheduler = new Scheduler(poll, par, connName);
                 _scheduler.Start();

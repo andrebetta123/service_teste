@@ -19,8 +19,8 @@ namespace ups_Work_Job_Service
                 Console.WriteLine("Serviço em modo console. Pressione ENTER para encerrar...");
                 Console.ReadLine();
 
-                svc.GetType().GetMethod("OnStop", BindingFlags.Instance | BindingFlags.NonPublic)
-                   ?.Invoke(svc, null);
+//                svc.GetType().GetMethod("OnStop", BindingFlags.Instance | BindingFlags.NonPublic)
+//                   ?.Invoke(svc, null);
             }
             else
             {

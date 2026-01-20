@@ -10,44 +10,53 @@ namespace ups_Work_Job_Service
 {
     internal static class NextRunCalculator
     {
-        public static async Task<DateTime?> ComputeNextRunUtcAsync(int scheduleId, int jobId)
+        public static DateTime? ComputeNextRunUtc(int scheduleId, int jobId)
         {
-            var s = await LoadScheduleAsync(scheduleId).ConfigureAwait(false);
+            // Use a versão síncrona do loader (sem Task/await).
+            var s = LoadScheduleSync(scheduleId);
             if (!s.Enabled) return null;
 
-            DateTime nowUtc = DateTime.UtcNow;
-            var tz = TimeZoneInfo.FindSystemTimeZoneById(s.TimeZoneId ?? "UTC");
-            DateTime nowLocal = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, tz);
+            DateTime nowLocal = DateTime.Now;
 
+            // Calcula o próximo disparo em horário local, sem qualquer conversão de fuso/UTC.
             DateTime? nextLocal = s.RecurrenceType switch
             {
                 0 => s.FixedDateTimeUtc.HasValue
-                        ? (s.FixedDateTimeUtc.Value <= nowUtc ? (DateTime?)null
-                           : TimeZoneInfo.ConvertTimeFromUtc(s.FixedDateTimeUtc.Value, tz))
+                        ? (s.FixedDateTimeUtc.Value <= nowLocal ? (DateTime?)null
+                           : s.FixedDateTimeUtc.Value) // já tratamos como local
                         : null,
 
-                1 => s.IntervalN.HasValue ? nowLocal.AddMinutes(s.IntervalN.Value) : (DateTime?)null, // every N minutes
-                2 => s.IntervalN.HasValue ? nowLocal.AddHours(s.IntervalN.Value) : (DateTime?)null, // every N hours
-                3 => s.TimeOfDay.HasValue ? NextDaily(nowLocal, s.TimeOfDay.Value) : (DateTime?)null, // daily
+                1 => s.IntervalN.HasValue ? nowLocal.AddMinutes(s.IntervalN.Value) : (DateTime?)null,
+                2 => s.IntervalN.HasValue ? nowLocal.AddHours(s.IntervalN.Value) : (DateTime?)null,
+                3 => s.TimeOfDay.HasValue ? NextDaily(nowLocal, s.TimeOfDay.Value) : (DateTime?)null,
+
                 4 => (s.TimeOfDay.HasValue && !string.IsNullOrWhiteSpace(s.DaysOfWeek))
                         ? NextWeekly(nowLocal, s.TimeOfDay.Value, ParseDays(s.DaysOfWeek))
                         : (DateTime?)null,
+
                 5 => (s.TimeOfDay.HasValue && s.DayOfMonth.HasValue)
                         ? NextMonthly(nowLocal, s.DayOfMonth.Value, s.TimeOfDay.Value)
                         : (DateTime?)null,
+
                 6 => (s.TimeOfDay.HasValue && s.DayOfMonth.HasValue && s.MonthOfYear.HasValue)
                         ? NextYearly(nowLocal, s.MonthOfYear.Value, s.DayOfMonth.Value, s.TimeOfDay.Value)
                         : (DateTime?)null,
+
+                7 => s.IntervalN.HasValue ? nowLocal.AddSeconds(s.IntervalN.Value) : (DateTime?)null,
+
                 _ => null
             };
 
             if (!nextLocal.HasValue) return null;
 
-            var nextUtc = TimeZoneInfo.ConvertTimeToUtc(nextLocal.Value, tz);
-            if (s.StartDateUtc.HasValue && nextUtc < s.StartDateUtc.Value) nextUtc = s.StartDateUtc.Value;
-            if (s.EndDateUtc.HasValue && nextUtc > s.EndDateUtc.Value) return null;
+            // Janela de agendamento também em horário local
+            if (s.StartDateUtc.HasValue && nextLocal.Value < s.StartDateUtc.Value)
+                nextLocal = s.StartDateUtc.Value;
 
-            return nextUtc;
+            if (s.EndDateUtc.HasValue && nextLocal.Value > s.EndDateUtc.Value)
+                return null;
+
+            return nextLocal;
         }
 
         #region Helpers
@@ -110,19 +119,27 @@ namespace ups_Work_Job_Service
                                            : csv.Split(',').Select(s => int.Parse(s.Trim())).ToArray();
         #endregion
 
-        private static async Task<ScheduleRow> LoadScheduleAsync(int sid)
+
+        private static ScheduleRow LoadScheduleSync(int sid)
         {
-            using (var conn = new SqlConnection(ConfigurationManager.ConnectionStrings[ConfigurationManager.AppSettings["DbConnName"] ?? "Default"].ConnectionString))
-            using (var cmd = new SqlCommand(@"
-SELECT Enabled, RecurrenceType, IntervalN, TimeOfDay, DaysOfWeek, DayOfMonth, MonthOfYear,
-       FixedDateTimeUtc, StartDateUtc, EndDateUtc, TimeZoneId
-FROM dbo.JobSchedules WHERE ScheduleId = @sid;", conn))
+            var csName = ConfigurationManager.AppSettings["DbConnName"] ?? "Default";
+            var connStr = ConfigurationManager.ConnectionStrings[csName].ConnectionString;
+
+            using (var conn = new SqlConnection(connStr))
+            using (var cmd = new SqlCommand(@"SELECT Enabled, RecurrenceType, (case when IntervalN is null then 0 else IntervalN end) IntervalN, TimeOfDay, DaysOfWeek, DayOfMonth, MonthOfYear,
+                                                     FixedDateTimeUtc, StartDateUtc, EndDateUtc, TimeZoneId
+                                               FROM dbo.JobSchedules WHERE ScheduleId = @sid;", conn))
             {
                 cmd.Parameters.Add("@sid", SqlDbType.Int).Value = sid;
-                await conn.OpenAsync().ConfigureAwait(false);
-                using (var rd = await cmd.ExecuteReaderAsync().ConfigureAwait(false))
+
+                conn.Open();
+
+                // Como você quer apenas uma linha, podemos otimizar com SingleRow
+                using (var rd = cmd.ExecuteReader(CommandBehavior.SingleRow))
                 {
-                    if (!rd.Read()) throw new InvalidOperationException("Schedule não encontrado");
+                    if (!rd.Read())
+                        throw new InvalidOperationException("Schedule não encontrado");
+
                     return new ScheduleRow
                     {
                         Enabled = rd.GetBoolean(0),

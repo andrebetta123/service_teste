@@ -4,8 +4,9 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
+using ups_Common;
+using ups_Entities;
 using System.Diagnostics;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -27,7 +28,8 @@ namespace ups_Work_Job_Service
             _parallel = new SemaphoreSlim(_maxParallel);
         }
 
-        public void Start() => Task.Run(() => LoopAsync(_cts.Token));
+        // public void Start() => Task.Run(() => LoopAsync(_cts.Token));
+        public void Start() { LoopAsync(_cts.Token); }
         public void Stop() { _cts.Cancel(); _parallel.Dispose(); }
 
         private async Task LoopAsync(CancellationToken ct)
@@ -40,15 +42,21 @@ namespace ups_Work_Job_Service
 
                     foreach (var s in due)
                     {
-                        await _parallel.WaitAsync(ct).ConfigureAwait(false);
+                        //await _parallel.WaitAsync(ct).ConfigureAwait(false);
 
-                        _ = Task.Run(async () =>
+                        //_ = Task.Run(async () =>
                         {
-                            try { await ProcessOneScheduleAsync(s).ConfigureAwait(false); }
-                            catch (Exception ex) { Trace.TraceError($"Erro no processamento do schedule {s.ScheduleId}: {ex}"); }
+                            try {
+                                // await ProcessOneScheduleAsync(s).ConfigureAwait(false);
+                                ProcessOneScheduleAsync(s);
+                            }
+                            catch (Exception ex) { 
+                                Trace.TraceError($"Erro no processamento do schedule {s.ScheduleId}: {ex}"); 
+                            }
                             finally { _parallel.Release(); }
 
-                        }, ct);
+                        }
+                        //, ct);
                     }
                 }
                 catch (OperationCanceledException) { /* encerrando */ }
@@ -65,24 +73,25 @@ namespace ups_Work_Job_Service
         private async Task<List<DueSchedule>> LoadDueSchedulesAsync(int take)
         {
             var list = new List<DueSchedule>();
-            using (var conn = new SqlConnection(GetConn()))
-            using (var cmd = new SqlCommand(@"
-SELECT TOP (@take)
-       s.ScheduleId, s.JobId, s.NextRunUtc, s.Enabled,
-       j.Name, j.Enabled AS JobEnabled, j.MaxRetries, j.RetryDelaySec, j.ConcurrencyKey
-FROM dbo.JobSchedules s
-JOIN dbo.Jobs j ON j.JobId = s.JobId
-WHERE s.Enabled = 1
-  AND j.Enabled = 1
-  AND s.NextRunUtc IS NOT NULL
-  AND s.NextRunUtc <= SYSUTCDATETIME()
-ORDER BY s.NextRunUtc ASC, s.JobId ASC;", conn))
+//            SELECT TOP(@take)
+            using (var conn2 = new SqlConnection(GetConn()))
+            using (var cmd = new SqlCommand(@" Select 
+                                               s.ScheduleId, s.JobId, coalesce(s.NextRunUtc,getdate()) NextRunUtc, s.Enabled,
+                                               j.Name, j.Enabled AS JobEnabled, j.MaxRetries, j.RetryDelaySec, j.ConcurrencyKey
+                                        FROM dbo.JobSchedules s
+                                        JOIN dbo.Jobs j ON j.JobId = s.JobId
+                                        WHERE s.Enabled = 1
+                                          AND j.Enabled = 1
+                                          AND COALESCE(s.NextRunUtc, dateadd(day,-1,getdate())) <= getdate()
+                                        ORDER BY s.NextRunUtc ASC, s.JobId ASC;", conn2))
             {
-                cmd.Parameters.Add("@take", SqlDbType.Int).Value = take;
-                await conn.OpenAsync().ConfigureAwait(false);
-                using (var rd = await cmd.ExecuteReaderAsync().ConfigureAwait(false))
+                // cmd.Parameters.Add("@take", SqlDbType.Int).Value = take;
+
+                // Execução síncrona
+                conn2.Open();
+                using (var rd = cmd.ExecuteReader())
                 {
-                    while (await rd.ReadAsync().ConfigureAwait(false))
+                    while (rd.Read())
                     {
                         list.Add(new DueSchedule
                         {
@@ -98,33 +107,47 @@ ORDER BY s.NextRunUtc ASC, s.JobId ASC;", conn))
                         });
                     }
                 }
+                cmd.Dispose();
+                conn2.Close();
+                conn2.Dispose();
             }
             return list;
         }
 
         private string GetConn() =>
-            ConfigurationManager.ConnectionStrings[ConfigurationManager.AppSettings["DbConnName"] ?? "Default"].ConnectionString;
+            ConfigurationManager.ConnectionStrings[ConfigurationManager.AppSettings["DbConnName"] ?? "SqlServer"].ConnectionString;
 
         private async Task ProcessOneScheduleAsync(DueSchedule s)
         {
-            // 1) Tentar garantir lock (sp_getapplock) para evitar concorrência do MESMO Job
+            // 1) Lock + marcar LastEvaluatedUtc
             using (var conn = new SqlConnection(GetConn()))
             {
-                await conn.OpenAsync().ConfigureAwait(false);
+                conn.Open();
+
                 using (var tx = conn.BeginTransaction(IsolationLevel.ReadCommitted))
                 {
-                    if (!Locking.TryAcquireJobLock(conn, tx, s.ConcurrencyKey, s.JobId))
+                    // Tente adquirir lock lógico (sp_getapplock)
+                    bool gotLock = Locking.TryAcquireJobLock(conn, tx, s.ConcurrencyKey, s.JobId);
+                    Trace.TraceInformation($"[JOB {s.JobId}] TryAcquireJobLock => {gotLock}");
+                    if (!gotLock)
                     {
                         tx.Rollback(); // outro worker pegou
                         return;
                     }
 
-                    // marcar que avaliou agora
                     using (var upd = new SqlCommand(
                         "UPDATE dbo.JobSchedules SET LastEvaluatedUtc = SYSUTCDATETIME() WHERE ScheduleId = @id", conn, tx))
                     {
                         upd.Parameters.Add("@id", SqlDbType.Int).Value = s.ScheduleId;
-                        upd.ExecuteNonQuery();
+                        upd.CommandTimeout = 10; // SqlCmdTimeoutSec;
+                        int rows = upd.ExecuteNonQuery();
+
+                        if (rows == 0)
+                        {
+                            tx.Rollback();
+                            Trace.TraceWarning($"[JOB {s.JobId}] Nenhuma linha atualizada (ScheduleId={s.ScheduleId}). Abortando.");
+                            return;
+                        }
                     }
 
                     tx.Commit();
@@ -132,23 +155,32 @@ ORDER BY s.NextRunUtc ASC, s.JobId ASC;", conn))
             }
 
             // 2) Executar o Job (com retry/backoff por step)
-            bool ok = await JobExecutor.RunJobAsync(s.JobId, s.MaxRetries, s.RetryDelaySec).ConfigureAwait(false);
+            Trace.TraceInformation($"[JOB {s.JobId}] Iniciando RunJobSync...");
+            bool ok = await JobExecutor.RunJobSync(s.JobId, s.MaxRetries, s.RetryDelaySec/*, token?*/).ConfigureAwait(false);
+            Trace.TraceInformation($"[JOB {s.JobId}] RunJobSync concluído: {ok}");
 
             // 3) Recalcular próxima execução (UTC)
-            DateTime? nextUtc = await NextRunCalculator.ComputeNextRunUtcAsync(s.ScheduleId, s.JobId).ConfigureAwait(false);
+            Trace.TraceInformation($"[JOB {s.JobId}] Iniciando ComputeNextRunUtcSync...");
+            DateTime? nextUtc = NextRunCalculator
+                .ComputeNextRunUtc(s.ScheduleId, s.JobId/*, token?*/);
+            Trace.TraceInformation($"[JOB {s.JobId}] ComputeNextRunUtcSync concluído: {nextUtc?.ToString("u") ?? "null"}");
 
-            // 4) Atualizar agenda com próxima execução
+            // 4) UPDATE final (síncrono)
             using (var conn = new SqlConnection(GetConn()))
             using (var cmd = new SqlCommand(
                 "UPDATE dbo.JobSchedules SET NextRunUtc = @next, LastEvaluatedUtc = SYSUTCDATETIME() WHERE ScheduleId = @sid", conn))
             {
                 cmd.Parameters.Add("@next", SqlDbType.DateTime2).Value = (object)nextUtc ?? DBNull.Value;
                 cmd.Parameters.Add("@sid", SqlDbType.Int).Value = s.ScheduleId;
-                await conn.OpenAsync().ConfigureAwait(false);
-                await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
+                cmd.CommandTimeout = 30;
+
+                conn.Open();
+                int rows = cmd.ExecuteNonQuery();
+                Trace.TraceInformation($"[JOB {s.JobId}] UPDATE NextRunUtc rows={rows}");
             }
 
-            Trace.TraceInformation($"Job {s.JobId} executado. Status={(ok ? "SUCCESS" : "FAILED")}. Próximo={nextUtc?.ToString("u") ?? "null"}");
+            Trace.TraceInformation($"[JOB {s.JobId}] FIM. Status={(ok ? "SUCCESS" : "FAILED")}. Próximo={nextUtc?.ToString("u") ?? "null"}");
+
         }
     }
 

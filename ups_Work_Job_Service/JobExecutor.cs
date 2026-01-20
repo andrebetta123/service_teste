@@ -12,35 +12,38 @@ namespace ups_Work_Job_Service
 {
     internal static class JobExecutor
     {
-        public static async Task<bool> RunJobAsync(int jobId, int maxRetries, int retryDelaySec)
+        public static async Task<bool> RunJobSync(int jobId, int maxRetries, int retryDelaySec)
         {
-            long runId = await InsertRunHistoryAsync(jobId, "RUNNING", null).ConfigureAwait(false);
+            // long runId = await InsertRunHistoryAsync(jobId, "RUNNING", null).ConfigureAwait(false);
+            long runId = InsertRunHistoryAsync(jobId, "RUNNING", null);
             bool ok = false;
             string finalMsg = null;
-
             try
             {
-                var steps = await LoadStepsAsync(jobId).ConfigureAwait(false);
+                // var steps = await LoadStepsAsync(jobId).ConfigureAwait(false);
+                var steps = LoadStepsAsync(jobId);
                 foreach (var st in steps)
                 {
-                    ok = await ExecuteStepWithRetryAsync(st, maxRetries, retryDelaySec).ConfigureAwait(false);
+                    //ok = await ExecuteStepWithRetryAsync(st, maxRetries, retryDelaySec).ConfigureAwait(false);
+                    ok = ExecuteStepWithRetryAsync(st, maxRetries, retryDelaySec);
                     if (!ok) { finalMsg = $"Falha no Step {st.StepNo} (StepId={st.StepId})"; break; }
                 }
                 finalMsg = ok ? "Executado com sucesso" : finalMsg ?? "Falha desconhecida";
-                await FinishRunHistoryAsync(runId, ok ? "SUCCESS" : "FAILED", finalMsg).ConfigureAwait(false);
+                FinishRunHistoryAsync(runId, ok ? "SUCCESS" : "FAILED", finalMsg);
             }
             catch (Exception ex)
             {
                 ok = false;
                 finalMsg = $"Exceção no Job {jobId}: {ex.Message}";
-                await FinishRunHistoryAsync(runId, "FAILED", finalMsg).ConfigureAwait(false);
+                FinishRunHistoryAsync(runId, "FAILED", finalMsg);
             }
 
-            await UpdateJobLastRunAsync(jobId, ok ? "SUCCESS" : "FAILED").ConfigureAwait(false);
+            UpdateJobLastRunAsync(jobId, ok ? "SUCCESS" : "FAILED");
             return ok;
         }
 
-        private static async Task<List<JobStep>> LoadStepsAsync(int jobId)
+        // private static async Task<List<JobStep>> LoadStepsAsync(int jobId)
+        private static List<JobStep> LoadStepsAsync(int jobId)
         {
             var list = new List<JobStep>();
             using (var conn = new SqlConnection(GetConn()))
@@ -48,10 +51,14 @@ namespace ups_Work_Job_Service
                 "SELECT StepId, JobId, StepNo, Script, TimeoutSec FROM dbo.JobSteps WHERE JobId=@jid ORDER BY StepNo ASC", conn))
             {
                 cmd.Parameters.Add("@jid", SqlDbType.Int).Value = jobId;
-                await conn.OpenAsync().ConfigureAwait(false);
-                using (var rd = await cmd.ExecuteReaderAsync().ConfigureAwait(false))
+                cmd.CommandTimeout = 30; // opcional: ajuste conforme sua necessidade
+
+                conn.Open(); // síncrono
+
+                // Se desejar, especifique CommandBehavior.SingleResult para pequena otimização
+                using (var rd = cmd.ExecuteReader(CommandBehavior.SingleResult))
                 {
-                    while (await rd.ReadAsync().ConfigureAwait(false))
+                    while (rd.Read())
                     {
                         list.Add(new JobStep
                         {
@@ -63,13 +70,16 @@ namespace ups_Work_Job_Service
                         });
                     }
                 }
+
             }
             return list;
         }
 
-        private static async Task<bool> ExecuteStepWithRetryAsync(JobStep st, int maxRetries, int retryDelaySec)
+        //private static async Task<bool> ExecuteStepWithRetryAsync(JobStep st, int maxRetries, int retryDelaySec)
+        private static bool ExecuteStepWithRetryAsync(JobStep st, int maxRetries, int retryDelaySec)
         {
             int attempts = 0;
+            var baseDelay = TimeSpan.FromSeconds(retryDelaySec);
             while (true)
             {
                 attempts++;
@@ -79,15 +89,23 @@ namespace ups_Work_Job_Service
                     using (var cmd = new SqlCommand(st.Script, conn))
                     {
                         cmd.CommandTimeout = st.TimeoutSec ?? DefaultTimeout();
-                        await conn.OpenAsync().ConfigureAwait(false);
-                        await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
+                        conn.Open();
+                        cmd.ExecuteNonQuery();
                     }
                     return true;
                 }
                 catch (SqlException ex) when (IsTransient(ex) && attempts < maxRetries)
                 {
-                    Trace.TraceWarning($"Step {st.StepNo} (Job {st.JobId}) erro transitório: {ex.Message}. Tentativa {attempts}/{maxRetries}.");
-                    await Task.Delay(TimeSpan.FromSeconds(retryDelaySec)).ConfigureAwait(false);
+                    var delay = TimeSpan.FromMilliseconds(
+                        Math.Min(
+                            baseDelay.TotalMilliseconds * Math.Pow(2, attempts - 1),
+                            30000 // teto de 30s, por exemplo
+                        )
+                    );
+                    Trace.TraceWarning(
+                        $"Step {st.StepNo} (Job {st.JobId}) erro transitório: {ex.Message}. " +
+                        $"Tentativa {attempts}/{maxRetries}. Aguardando {delay.TotalSeconds:F1}s...");
+                    System.Threading.Thread.Sleep(delay);
                 }
                 catch (Exception ex)
                 {
@@ -97,23 +115,80 @@ namespace ups_Work_Job_Service
             }
         }
 
-        private static async Task<long> InsertRunHistoryAsync(int jobId, string status, string message)
+        //{
+        //    int attempts = 0;
+        //    while (true)
+        //    {
+        //        attempts++;
+        //        try
+        //        {
+        //            using (var conn = new SqlConnection(GetConn()))
+        //            using (var cmd = new SqlCommand(st.Script, conn))
+        //            {
+        //                cmd.CommandTimeout = st.TimeoutSec ?? DefaultTimeout();
+        //                await conn.OpenAsync().ConfigureAwait(false);
+        //                await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
+        //            }
+        //            return true;
+        //        }
+        //        catch (SqlException ex) when (IsTransient(ex) && attempts < maxRetries)
+        //        {
+        //            Trace.TraceWarning($"Step {st.StepNo} (Job {st.JobId}) erro transitório: {ex.Message}. Tentativa {attempts}/{maxRetries}.");
+        //            await Task.Delay(TimeSpan.FromSeconds(retryDelaySec)).ConfigureAwait(false);
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            Trace.TraceError($"Step {st.StepNo} (Job {st.JobId}) falhou: {ex}");
+        //            return false;
+        //        }
+        //    }
+        //}
+
+        //        private static async Task<long> InsertRunHistoryAsync(int jobId, string status, string message)
+        //        {
+        //            using (var conn = new SqlConnection(GetConn()))
+        //            using (var cmd = new SqlCommand(
+        //                "INSERT INTO dbo.JobRunHistory (JobId, Status, Message, HostName) VALUES (@jid,@st,@msg,@host); SELECT CAST(SCOPE_IDENTITY() AS BIGINT);", conn))
+        //            {
+        //                cmd.Parameters.Add("@jid", SqlDbType.Int).Value = jobId;
+        //                cmd.Parameters.Add("@st", SqlDbType.NVarChar, 50).Value = status;
+        //                cmd.Parameters.Add("@msg", SqlDbType.NVarChar).Value = null; // (object)message ?? DBNull.Value;
+        //                cmd.Parameters.Add("@host", SqlDbType.NVarChar, 200).Value = Environment.MachineName;
+        //                await conn.OpenAsync().ConfigureAwait(false);
+        //                // AQUI //
+        //                var runId = (long)await cmd.ExecuteScalarAsync().ConfigureAwait(false);
+        //                return runId;
+        //            }
+        //        }
+
+
+        private static long InsertRunHistoryAsync(int jobId, string status, string message)
         {
             using (var conn = new SqlConnection(GetConn()))
-            using (var cmd = new SqlCommand(
-                "INSERT INTO dbo.JobRunHistory (JobId, Status, Message, HostName) VALUES (@jid,@st,@msg,@host); SELECT CAST(SCOPE_IDENTITY() AS BIGINT);", conn))
+            using (var cmd = new SqlCommand(@"
+                                            INSERT INTO dbo.JobRunHistory (JobId, Status, Message, HostName)
+                                            VALUES (@jid, @st, @msg, @host);
+                                            SELECT CONVERT(BIGINT, SCOPE_IDENTITY());", conn))
             {
                 cmd.Parameters.Add("@jid", SqlDbType.Int).Value = jobId;
-                cmd.Parameters.Add("@st", SqlDbType.NVarChar, 50).Value = status;
-                cmd.Parameters.Add("@msg", SqlDbType.NVarChar).Value = (object)message ?? DBNull.Value;
+                cmd.Parameters.Add("@st", SqlDbType.NVarChar, 50).Value = status ?? (object)DBNull.Value;
+
+                // Ajuste o tamanho conforme o schema (MAX => -1)
+                var pMsg = cmd.Parameters.Add("@msg", SqlDbType.NVarChar, -1);
+                pMsg.Value = (object)message ?? DBNull.Value;
+
                 cmd.Parameters.Add("@host", SqlDbType.NVarChar, 200).Value = Environment.MachineName;
-                await conn.OpenAsync().ConfigureAwait(false);
-                var runId = (long)await cmd.ExecuteScalarAsync().ConfigureAwait(false);
-                return runId;
+
+                cmd.CommandTimeout = 30;
+
+                conn.Open();
+                object scalar = cmd.ExecuteScalar();
+                return Convert.ToInt64(scalar);
             }
         }
 
-        private static async Task FinishRunHistoryAsync(long runId, string status, string message)
+
+        private static void FinishRunHistoryAsync(long runId, string status, string message)
         {
             using (var conn = new SqlConnection(GetConn()))
             using (var cmd = new SqlCommand(
@@ -122,8 +197,8 @@ namespace ups_Work_Job_Service
                 cmd.Parameters.Add("@rid", SqlDbType.BigInt).Value = runId;
                 cmd.Parameters.Add("@st", SqlDbType.NVarChar, 50).Value = status;
                 cmd.Parameters.Add("@msg", SqlDbType.NVarChar).Value = (object)message ?? DBNull.Value;
-                await conn.OpenAsync().ConfigureAwait(false);
-                await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
+                conn.OpenAsync();
+                cmd.ExecuteNonQueryAsync();
             }
         }
 
